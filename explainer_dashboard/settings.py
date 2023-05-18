@@ -139,7 +139,7 @@ STATICFILES_DIRS = [
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': 'pipline_cache',
     }
 }

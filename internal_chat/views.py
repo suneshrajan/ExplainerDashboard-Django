@@ -3,6 +3,7 @@ from django.shortcuts import render
 from requests import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.cache import cache
 from base64 import b64encode, b64decode
 import PyPDF2
 import csv
@@ -47,6 +48,7 @@ def load_chat_document(request):
 
         upload_doc(destination_path, training_file_path)
 
+        cache.delete('trained_pipline_cache')
     return HttpResponse('got image')
 
 
@@ -89,6 +91,11 @@ def upload_doc(input_file_path, output_file_path):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def train_doc_chat_model(request):
+    pipeline_status = create_new_pipeline()
+    return HttpResponse('Model Trained ...')
+
+
+def create_new_pipeline():
     document_store = InMemoryDocumentStore(use_bm25=True)
     doc_dir = "static/training_file"
     files_to_index = [doc_dir + "/" + f for f in os.listdir(doc_dir)]
@@ -101,9 +108,24 @@ def train_doc_chat_model(request):
 
     pipe = ExtractiveQAPipeline(reader, retriever)
 
-    prediction = pipe.run(
-        query="what is Paper presentation ?",
-        params={
+    cache.set('trained_pipline_cache', pipe)
+    return True
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def retrive_data_from_pipeline(request):
+    query = "what happend to 20 year old BCA student?" #request.data['query']
+    tirained_pipleine = cache.get('trained_pipline_cache')
+    if tirained_pipleine is None:
+        create_new_pipeline()
+        tirained_pipleine = cache.get('trained_pipline_cache')
+    else:
+        tirained_pipleine = cache.get('trained_pipline_cache')
+
+    prediction = tirained_pipleine.run(
+        query = query,
+        params = { 
             "Retriever": {"top_k": 2},
             "Reader": {"top_k": 1}
         }
