@@ -25,6 +25,12 @@ def show_dashboard(request):
     x=pd.DataFrame(data.data,columns=data.feature_names)
     y=pd.DataFrame(data.target,columns=["target"])
 
+    data = pd.read_csv('acmec_admin_master1.csv')
+    df = data.copy()
+
+    x=df.drop(columns=['category_id'])
+    y=data[['category_id']]
+
     global edb_sub_prs
     if edb_sub_prs is not None:
         edb_sub_prs.terminate()

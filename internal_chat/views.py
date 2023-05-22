@@ -11,7 +11,7 @@ import pandas as pd
 import shutil
 import os
 
-# NLP Package
+# Haystack NLP Package
 from haystack.document_stores import InMemoryDocumentStore
 from haystack.pipelines.standard_pipelines import TextIndexingPipeline
 from haystack.nodes import BM25Retriever
@@ -24,17 +24,17 @@ from haystack.pipelines import ExtractiveQAPipeline
 @permission_classes([AllowAny])
 def load_chat_document(request):
     file_data = request.data
-    # file_name_list:list = file_data['file_names']
-    # encoded_string_list:list = file_data['base_64s']
+    file_name_list:list = file_data['file_names']
+    encoded_string_list:list = file_data['base_64s']
 
-    file_name_list = []
-    encoded_string_list = []
-    file_name_list.append("eng12.pdf")
-    with open("/home/suensh/Software/App/NLP-QA-MODEL/eng12.pdf", "rb") as file:
-        pdf_data = file.read()
-        encoded_data = b64encode(pdf_data)
-        encoded_string_list.append('file base64,' + encoded_data.decode("utf-8"))
-
+    # file_name_list = []
+    # encoded_string_list = []
+    # file_name_list.append("eng12.pdf")
+    # with open("/home/suensh/Software/App/NLP-QA-MODEL/eng12.pdf", "rb") as file:
+    #     pdf_data = file.read()
+    #     encoded_data = b64encode(pdf_data)
+    #     encoded_string_list.append('file base64,' + encoded_data.decode("utf-8"))
+    cache.delete('trained_pipline_cache')
     for index,encoded_string in enumerate(encoded_string_list):
         decoded_file = decode_image(encoded_string = encoded_string)
 
@@ -47,8 +47,7 @@ def load_chat_document(request):
         training_file_path = 'static/training_file/' + str(file_name_list[index]).split('.')[0] + '.txt'
 
         upload_doc(destination_path, training_file_path)
-
-        cache.delete('trained_pipline_cache')
+    trained_pipeline = create_new_pipeline()
     return HttpResponse('got image')
 
 
@@ -88,11 +87,11 @@ def upload_doc(input_file_path, output_file_path):
         df.to_csv(output_file_path, sep=" ", index=False, header=False)  # Write DataFrame to a text file
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def train_doc_chat_model(request):
-    pipeline_status = create_new_pipeline()
-    return HttpResponse('Model Trained ...')
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def train_doc_chat_model(request):
+#     pipeline_status = create_new_pipeline()
+#     return HttpResponse('Model Trained ...')
 
 
 def create_new_pipeline():
@@ -104,7 +103,7 @@ def create_new_pipeline():
 
     retriever = BM25Retriever(document_store=document_store)
 
-    reader = FARMReader(model_name_or_path="deepset/roberta-base-squad2", use_gpu=True)
+    reader = FARMReader(model_name_or_path="distilbert-base-uncased-distilled-squad", use_gpu=True)
 
     pipe = ExtractiveQAPipeline(reader, retriever)
 
@@ -115,7 +114,7 @@ def create_new_pipeline():
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def retrive_data_from_pipeline(request):
-    query = "what happend to 20 year old BCA student?" #request.data['query']
+    query = "What is your weakness?" #request.data['query']
     tirained_pipleine = cache.get('trained_pipline_cache')
     if tirained_pipleine is None:
         create_new_pipeline()
@@ -131,4 +130,4 @@ def retrive_data_from_pipeline(request):
         }
     )
 
-    return HttpResponse(str(prediction['answers'][0].context))
+    return HttpResponse(str(prediction['answers'][0].answer))
