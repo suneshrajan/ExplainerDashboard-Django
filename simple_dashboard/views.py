@@ -17,29 +17,20 @@ edb_sub_prs = None
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def show_dashboard(request):
-        
-    #Import the Diabetes Dataset
-    data= load_diabetes()
-    
-    #create a DataFrame from the dataset
-    x=pd.DataFrame(data.data,columns=data.feature_names)
-    y=pd.DataFrame(data.target,columns=["target"])
 
-    data = pd.read_csv('acmec_admin_master1.csv')
-    df = data.copy()
-
-    x=df.drop(columns=['category_id'])
-    y=data[['category_id']]
+    df = pd.read_csv('acmec_admin_master1.csv')
+    target = 'is_member'
+    p_type = 'classification'
 
     global edb_sub_prs
     if edb_sub_prs is not None:
         edb_sub_prs.terminate()
-    edb_sub_prs = edb_sub_process(x, y)
+    edb_sub_prs = edb_sub_process(df, target, p_type)
 
     return HttpResponse('dashboard started')
 
-def edb_sub_process(x, y):
-    edb = subprocess.Popen(['python', 'dashboard.py', json.dumps(x.to_dict()), json.dumps(y.to_dict())])
+def edb_sub_process(df, target, p_type):
+    edb = subprocess.Popen(['python', 'dashboard.py', json.dumps(df.to_dict()), target, p_type])
     return edb
 
 def stop_dashboard(request):
